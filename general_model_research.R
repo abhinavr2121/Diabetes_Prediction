@@ -1,0 +1,113 @@
+library(caret)
+library(caTools)
+library(ggplot2)
+library(ggthemes)
+library(Metrics)
+
+set.seed(101)
+
+# READ DATA
+data <- read.csv('data/diabetes.csv', stringsAsFactors = F)
+data$Outcome <- factor(data$Outcome, labels = c("0" = "No", "1" = "Yes"))
+
+# TRAIN/TEST SPLIT
+sample.n <- sample.split(Y = data$Pregnancies, SplitRatio = 0.8)
+train <- subset(data, sample.n == TRUE)
+test <- subset(data, sample.n == FALSE)
+true <- test$Outcome
+test <- subset(test, select = -c(length(test)))
+
+# TRAIN MODELS
+control <- trainControl(method = "repeatedcv", repeats = 10, number = 10, search = 'grid')
+train.time <- c()
+
+start <- Sys.time()
+m1 <- caret::train(Outcome ~ ., train, 'sda', trControl = control, metric = "Accuracy")
+m1.d <- predict(m1, test)
+m1.acc <- accuracy(m1.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m2 <- caret::train(Outcome ~ ., train, 'naive_bayes', trControl = control)
+m2.d <- predict(m2, test)
+m2.acc <- accuracy(m2.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m3 <- caret::train(Outcome ~ ., train, 'svmRadialCost', trControl = control)
+m3.d <- predict(m3, test)
+m3.acc <- accuracy(m3.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m4 <- caret::train(Outcome ~ ., train, 'C5.0', trControl = control)
+m4.d <- predict(m4, test)
+m4.acc <- accuracy(m4.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m5 <- caret::train(Outcome ~ ., train, 'rpart', trControl = control)
+m5.d <- predict(m5, test)
+m5.acc <- accuracy(m5.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m6 <- caret::train(Outcome ~ ., train, 'blackboost', trControl = control)
+m6.d <- predict(m6, test)
+m6.acc <- accuracy(m6.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m7 <- caret::train(Outcome ~ ., train, 'pam', trControl = control)
+m7.d <- predict(m7, test)
+m7.acc <- accuracy(m7.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m8 <- caret::train(Outcome ~ ., train, 'pls', trControl = control)
+m8.d <- predict(m8, test)
+m8.acc <- accuracy(m8.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m9 <- caret::train(Outcome ~ ., train, 'kknn', trControl = control)
+m9.d <- predict(m9, test)
+m9.acc <- accuracy(m9.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m10 <- caret::train(Outcome ~ ., train, 'glmboost', trControl = control)
+m10.d <- predict(m10, test)
+m10.acc <- accuracy(m10.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m11 <- caret::train(Outcome ~ ., train, 'glmnet', trControl = control)
+m11.d <- predict(m11, test)
+m11.acc <- accuracy(m11.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+start <- Sys.time()
+m12 <- caret::train(Outcome ~ ., train, 'mlp', trControl = control)
+m12.d <- predict(m12, test)
+m12.acc <- accuracy(m12.d, true)
+end <- Sys.time()
+train.time <- append(train.time, as.numeric(difftime(end, start, units = 'mins')))
+
+model.names <- c("Shrinkage Discriminant Analysis", "Naive Bayes", "Support Vector Machine", "C5.0", "Random Forest", "Blackboost", "Nearest Shrunken Centroids", "Partial Least Squares", "K-Nearest Neighbors", "Boosted Generalized Linear Model", "ElasticNet Generalized Linear Model", "Multilayered Perceptron")
+model.info <- c(m1.acc, m2.acc, m3.acc, m4.acc, m5.acc, m6.acc, m7.acc, m8.acc, m9.acc, m10.acc, m11.acc, m12.acc)
+model.info <- 100 - (100 * model.info)
+model.df <- data.frame(model.names, model.info, train.time)
+p <- ggplot(model.df, aes(x = model.df$model.names, y = model.df$model.info)) + geom_bar(fill = "#B33771", stat = 'identity') + theme_hc() + coord_flip() + xlab("Model Name") + ylab("Classification Error [%]") + ggtitle("Performance of ML Algorithms")
+p1 <- ggplot(model.df, aes(x = model.df$model.info, y = train.time, color = model.names)) + geom_point(size = 3) + theme_hc() + xlab("Classification Error [%]") + ylab("Training Time [minutes]") + ggtitle("Classification Error vs. Training Time")
